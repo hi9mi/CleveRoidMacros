@@ -107,6 +107,11 @@ SlashCmdList.RUNMACRO = function(msg)
     return CleveRoids.ExecuteMacroByName(CleveRoids.Trim(msg))
 end
 
+SLASH_CRUN1 = "/crun"
+SlashCmdList.CRUN = function(msg)
+    return CleveRoids.DoCRun(msg)
+end
+
 SLASH_RETARGET1 = "/retarget"
 SlashCmdList.RETARGET = function(msg)
     CleveRoids.DoRetarget()

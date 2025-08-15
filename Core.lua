@@ -957,6 +957,27 @@ function CleveRoids.DoCastSequence(sequence)
     end
 end
 
+-- Executes Lua Code with CleveRoids conditionals (Custom Run)
+function CleveRoids.DoCRun(msg)
+    local action = function(script) 
+        if RunScript then
+            RunScript(script)
+        else
+            local fn = loadstring(script)
+            if fn then fn() end
+        end
+        return true
+    end
+
+    return CleveRoids.DoWithConditionals(
+        msg,
+        CleveRoids.DoCRun,
+        CleveRoids.FixEmptyTarget,
+        false,
+        action
+    )
+end
+
 function CleveRoids.OnUpdate(self)
     -- make sure spells and items have been parsed
     if not CleveRoids.ready then return end
