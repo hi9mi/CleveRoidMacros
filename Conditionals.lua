@@ -338,11 +338,12 @@ function CleveRoids.ValidateKnown(args)
 
     if spell then
         local spell_rank_str = spell.rank or (spell.highest and spell.highest.rank) or ""
-        local spell_rank_num_str = string.gsub(spell_rank_str, "Rank ", "")
+        -- FLEXIBLY extract just the number from the rank string
+        local _, _, spell_rank_num_str = string.find(spell_rank_str, "(%d+)")
 
         if not arg_amount and not arg_operator then
             return true
-        elseif arg_amount and arg_operator and CleveRoids.operators[arg_operator] and spell_rank_num_str ~= "" then
+        elseif arg_amount and arg_operator and CleveRoids.operators[arg_operator] and spell_rank_num_str and spell_rank_num_str ~= "" then
             local numeric_rank = tonumber(spell_rank_num_str)
             if numeric_rank then
                 return CleveRoids.comparators[arg_operator](numeric_rank, arg_amount)
@@ -518,32 +519,49 @@ end
 function CleveRoids.ValidateAura(unit, args, isbuff)
     if not args or not UnitExists(unit) then return false end
 
+    if not CleveRoids.hasSuperwow then
+        return false
+    end
+
     if type(args) ~= "table" then
         args = {name = args}
     end
 
-    local isPlayer = (unit == "player")
+    local isPlayer = UnitIsUnit(unit, "player")
     local found = false
-    local texture, stacks, spellID, remaining
+    local stacks, remaining
     local i = isPlayer and 0 or 1
 
     while true do
+        local texture
+        local current_spellID = nil
+
         if isPlayer then
-            texture, stacks, spellID, remaining = CleveRoids.GetPlayerAura(i, isbuff)
+            texture, stacks, current_spellID, remaining = CleveRoids.GetPlayerAura(i, isbuff)
         else
-            if isbuff then
-                texture, stacks, spellID = UnitBuff(unit, i)
-            else
-                texture, stacks, _, spellID = UnitDebuff(unit, i)
+            local returns = isbuff and {UnitBuff(unit, i)} or {UnitDebuff(unit, i)}
+            texture = returns[1]
+            if texture then
+                for _, value in ipairs(returns) do
+                    if type(value) == "number" and SpellInfo(value) then
+                        current_spellID = value
+                        stacks = isbuff and returns[2] or returns[4]
+                        break
+                    end
+                end
             end
         end
 
-        if (CleveRoids.hasSuperwow and not spellID) or not texture then break end
-        if (CleveRoids.hasSuperwow and args.name == SpellInfo(spellID))
-            or (not CleveRoids.hasSuperwow and texture == CleveRoids.auraTextures[args.name])
-        then
-            found = true
-            break
+        if not texture then break end
+
+        if current_spellID then
+            local auraName = SpellInfo(current_spellID)
+            if auraName then
+                if string.find(string.lower(auraName), string.lower(args.name), 1, true) then
+                    found = true
+                    break
+                end
+            end
         end
 
         i = i + 1

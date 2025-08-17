@@ -604,7 +604,8 @@ function CleveRoids.ParseMsg(msg)
 
     -- Store the action along with the conditionals incase it's needed
     conditionals.action = action
-    action = string.gsub(action, "%(Rank %d+%)", "")
+    -- FLEXIBLY remove rank text like "(Rank 9)" to get the base spell name
+    action = string.gsub(action, "%s*%(.-%)%s*$", "")
 
     if noSpam and noSpam ~= "" then
         local spamCond = CleveRoids.GetSpammableConditional(action)
@@ -796,12 +797,6 @@ function CleveRoids.TestAction(cmd, args)
     return CleveRoids.GetMacroNameFromAction(msg) or msg
 end
 
--- Does the given action with a set of conditionals provided by the given msg
--- msg: The conditions followed by the action's parameters
--- hook: The hook of the function we've intercepted
--- fixEmptyTargetFunc: A function setting the player's target if the player has none. Required to return true if we need to re-target later or false if not
--- targetBeforeAction: A boolean value that determines whether or not we need to target the target given in the conditionals before performing the given action
--- action: A function that is being called when everything checks out
 function CleveRoids.DoWithConditionals(msg, hook, fixEmptyTargetFunc, targetBeforeAction, action)
     local msg, conditionals = CleveRoids.GetParsedMsg(msg)
 
@@ -918,7 +913,8 @@ function CleveRoids.DoWithConditionals(msg, hook, fixEmptyTargetFunc, targetBefo
         end
     else -- This 'else' corresponds to 'if string.sub(msg, 1, 1) == "{"...'
         local castMsg = msg
-        if action == CastSpellByName and not string.find(msg, "%(Rank %d+%)") then
+        -- FLEXIBLY check for any rank text like "(Rank 9)" before adding the highest rank
+        if action == CastSpellByName and not string.find(msg, "%(.*%)") then
             local sp = CleveRoids.GetSpell(msg)
             local rank = sp and (sp.rank or (sp.highest and sp.highest.rank))
             if rank and rank ~= "" then
@@ -943,18 +939,16 @@ function CleveRoids.DoWithConditionals(msg, hook, fixEmptyTargetFunc, targetBefo
     return result
 end
 
--- Attempts to cast a single spell from the given set of conditional spells
--- msg: The player's macro text
 function CleveRoids.DoCast(msg)
     local handled = false
 
     for k, v in pairs(CleveRoids.splitStringIgnoringQuotes(msg)) do
         if CleveRoids.DoWithConditionals(v, CleveRoids.Hooks.CAST_SlashCmd, CleveRoids.FixEmptyTarget, not CleveRoids.hasSuperwow, CastSpellByName) then
-            handled = true -- we parsed at least one command
-            break
+            -- If a spell is successfully attempted, immediately exit to prevent casting multiple spells.
+            return true
         end
     end
-    return handled
+    return false
 end
 
 -- Target using GUIDs (actually unit tokens) and correct targeting.
