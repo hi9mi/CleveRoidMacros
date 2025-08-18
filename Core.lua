@@ -951,6 +951,30 @@ function CleveRoids.DoCast(msg)
     return false
 end
 
+-- Execute arbitrary Lua under CleverRoids conditionals
+function CleveRoids.DoCRun(msg)
+    local runner = function(code)
+        if not code or code == "" then return end
+        -- remove ability to use /run and /sript
+        code = string.gsub(code, "^%*/(run|script)%s+", "")
+
+        local fn, err = loadstring(code)
+        if not fn then
+           CleveRoids.Print("|cffff5555/crun compile error:|r " .. tostring(err))
+        end
+
+        -- run in global environment
+        setfenv(fn, getfenv(0))
+        local ok, runtime = pcall(fn)
+        if not ok then
+            CleveRoids.Print("|cffff5555/crun runtime error:|r " .. tostring(runtime))
+        end
+    end
+
+    return CleveRoids.DoWithConditionals(msg, nil, nil, false, runner)
+end
+
+
 -- Target using GUIDs (actually unit tokens) and correct targeting.
 function CleveRoids.DoTarget(msg)
     local action, conditionals = CleveRoids.GetParsedMsg(msg)
@@ -1749,7 +1773,8 @@ function CleveRoids.Frame:ADDON_LOADED(addon)
             cast = { action = CleveRoids.DoCast },
             target = { action = CleveRoids.DoTarget },
             use = { action = CleveRoids.DoUse },
-            castsequence = { action = CleveRoids.DoCastSequence }
+            castsequence = { action = CleveRoids.DoCastSequence },
+            crun = { action = CleveRoids.DoCRun }
         }
 
         -- Hook SuperMacro's RunLine to stay compatible

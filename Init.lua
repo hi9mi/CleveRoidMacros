@@ -55,6 +55,7 @@ CleveRoids.dynamicCmds = {
     ["/equip"]        = true,
     ["/equipmh"]      = true,
     ["/equipoh"]      = true,
+    ['/crun']         = true,
 }
 
 CleveRoids.ignoreKeywords = {

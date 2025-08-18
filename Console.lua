@@ -192,6 +192,14 @@ SlashCmdList.RUNMACRO = function(msg)
     return CleveRoids.ExecuteMacroByName(CleveRoids.Trim(msg))
 end
 
+SLASH_CRUN1 = "/crun"
+SlashCmdList["CRUN"] = function(msg)
+  local ok = CleveRoids.DoCRun(msg or "")
+  if not ok then
+    CleveRoids.Print("Usage: /crun [conditionals] <lua code>")
+  end
+end
+
 SLASH_RETARGET1 = "/retarget"
 SlashCmdList.RETARGET = function(msg)
     CleveRoids.DoRetarget()
